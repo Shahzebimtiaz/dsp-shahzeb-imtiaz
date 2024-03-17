@@ -4,3 +4,7 @@ numpy==1.26.4
 scikit-learn==1.4.1.post1
 pandas==2.2.1
 seaborn==0.13.2
+flake8==7.0.0
+mccabe==0.7.0
+pycodestyle==2.11.1
+pyflakes==3.2.0
