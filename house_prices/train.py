@@ -1,31 +1,42 @@
-import pandas as pd
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
 import joblib
-# from preprocess import preprocess_data
-from preprocess import feature_engineering, preprocess_data
+import numpy as np
+import pandas as pd
+from preprocess import preprocess_data
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, mean_squared_log_error
 
 
-def build_model(df: pd.DataFrame, target_column: str, categorical_columns: list[str], numerical_columns: list[str]) -> \
-dict[str, float]:
-    X = df.drop(columns=[target_column])
-    y = df[target_column]
+def compute_rmsle(
+    y_test: np.ndarray,
+    y_pred: np.ndarray,
+    precision: int = 2
+) -> str:
+    rmsle = np.sqrt(mean_squared_log_error(y_test, y_pred))
+    return str(round(rmsle, precision))
 
-    # Preprocess and feature engineering
-    X_processed = preprocess_data(X, categorical_columns, numerical_columns)
-    X_featured = feature_engineering(X_processed, categorical_columns, numerical_columns)
 
-    # Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(X_featured, y, test_size=0.25, random_state=42)
+def build_model(data: pd.DataFrame) -> dict[str, str]:
+    X_test_final, X_train, y_train, y_test, numeric_transformer, \
+        categorical_transformer = preprocess_data(data)
 
-    # Train model
+    # Train the model
     model = LinearRegression()
     model.fit(X_train, y_train)
 
-    # Save model
-    joblib.dump(model, '../models/model.joblib')
+    # Save the trained model and transformers
+    models_folder = '../models/'
+    joblib.dump(model, models_folder + 'model.joblib')
+    joblib.dump(numeric_transformer, models_folder + 'numerical_scaler.joblib')
+    joblib.dump(categorical_transformer,
+                models_folder + 'categorical_encoder.joblib')
 
-    # Evaluate model
-    rmse = model.score(X_test, y_test)
+    # Predict house prices
+    predictions = model.predict(X_test_final)
 
-    return {'rmse': rmse}
+    # Calculate RMSE
+    rmse = np.sqrt(mean_squared_error(y_test, predictions))
+
+    # Calculate RMSLE
+    rmsle = compute_rmsle(y_test, predictions)
+
+    return {'rmse': str(rmse), 'rmsle': rmsle}
